@@ -1,6 +1,6 @@
 import * as LRU from 'lru-cache';
 import StatusBarItem from './ui/statusBarItem';
-import { COMMAND_TOGGLE_OUTPUT } from './constants';
+import { COMMAND_SET_PROFILE } from './constants';
 import AppState from './modules/appState';
 import RemoteExplorer from './modules/remoteExplorer';
 
@@ -22,8 +22,8 @@ app.sftpBarItem = new StatusBarItem(
       return 'SFTP';
     }
   },
-  'SFTP@Natizyskunk',
-  COMMAND_TOGGLE_OUTPUT
+  'Click to switch SFTP profile',
+  COMMAND_SET_PROFILE
 );
 app.fsCache = LRU<string, string>({ max: 6 });
 

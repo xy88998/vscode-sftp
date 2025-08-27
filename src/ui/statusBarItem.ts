@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { COMMAND_TOGGLE_OUTPUT } from '../constants';
 
 const spinners = {
   dots: {
@@ -60,10 +61,17 @@ export default class StatusBarItem {
     return this.spinnerTimer !== null;
   }
 
+  updateCommand(command: string) {
+    this.statusBarItem.command = command;
+  }
+
   startSpinner() {
     if (this.spinnerTimer) {
       return;
     }
+
+    // 当开始传输时，点击应该显示输出面板
+    this.updateCommand(COMMAND_TOGGLE_OUTPUT);
 
     const totalFrame = this.spinner.frames.length;
     this.spinnerTimer = setInterval(() => {
@@ -77,6 +85,16 @@ export default class StatusBarItem {
     clearInterval(this.spinnerTimer);
     this.spinnerTimer = null;
     this.curFrameOfSpinner = 0;
+    
+    // 传输结束后，恢复配置切换功能
+    const originalCommand = this.statusBarItem.command;
+    if (originalCommand === COMMAND_TOGGLE_OUTPUT) {
+      // 延迟恢复，避免用户误点
+      setTimeout(() => {
+        this.statusBarItem.command = 'sftp.setProfile';
+      }, 1000);
+    }
+    
     this._render();
   }
 

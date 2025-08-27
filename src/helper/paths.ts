@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { URI } from 'vscode-uri';
+import URI from 'vscode-uri';
 import { upath } from '../core';
 import { pathRelativeToWorkspace, getWorkspaceFolders } from '../host';
 
@@ -30,7 +30,9 @@ export function simplifyPath(absolutePath: string) {
 
 // FIXME: use fs.pathResolver instead of upath
 export function toRemotePath(localPath: string, localContext: string, remoteContext: string) {
-  return upath.join(remoteContext, path.relative(getFileSystemPath(localContext), getFileSystemPath(localPath)));
+  const localContextUri = URI.file(localContext);
+  const localPathUri = URI.file(localPath);
+  return upath.join(remoteContext, path.relative(getFileSystemPath(localContextUri), getFileSystemPath(localPathUri)));
 }
 
 // FIXME: use fs.pathResolver instead of upath
