@@ -42,30 +42,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 
-    // 跟踪新打开的终端，避免重复执行
-    const newTerminals = new Set<vscode.Terminal>();
-
-    // 监听新终端打开
-    const terminalOpenDisposable = vscode.window.onDidOpenTerminal((terminal) => {
-        // 标记为新终端
-        newTerminals.add(terminal);
-        // 新终端打开时自动设置项目版本或最新版本
-        setTimeout(async () => {
-            await autoSetNodeVersionForNewTerminal(terminal);
-            // 执行完成后从新终端集合中移除
-            setTimeout(() => newTerminals.delete(terminal), 2000);
-        }, 1000);
-    });
-    context.subscriptions.push(terminalOpenDisposable);
-
-    // 监听终端变化（当前仅用于清理 newTerminals 集合）
-    const terminalChangeDisposable = vscode.window.onDidChangeActiveTerminal((terminal) => {
-        // 如果是新打开的终端，从集合中移除（避免内存泄漏）
-        if (terminal && newTerminals.has(terminal)) {
-            newTerminals.delete(terminal);
-        }
-    });
-    context.subscriptions.push(terminalChangeDisposable);
 
     // 初始化时显示当前版本
     updateStatusBar();
@@ -82,89 +58,6 @@ export function deactivate() {
     }
     if (updateInterval) {
         clearInterval(updateInterval);
-    }
-}
-
-// 自动为新终端设置Node.js版本
-async function autoSetNodeVersionForNewTerminal(terminal: vscode.Terminal) {
-    try {
-        // 1. 检查项目是否有 .nvmrc 文件
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        if (workspaceFolder) {
-            const nvmrcPath = vscode.Uri.joinPath(workspaceFolder.uri, '.nvmrc');
-            try {
-                const nvmrcContent = await vscode.workspace.fs.readFile(nvmrcPath);
-                const projectVersion = Buffer.from(nvmrcContent).toString().trim();
-                if (projectVersion) {
-                    // 在终端中执行 nvm use 项目版本
-                    terminal.sendText(`nvm use ${projectVersion}`);
-                    // 更新缓存的版本
-                    lastUsedVersion = projectVersion.startsWith('v') ? projectVersion : `v${projectVersion}`;
-                    setTimeout(() => updateStatusBar(), 2000);
-                    return;
-                }
-            } catch (nvmrcError) {
-                // .nvmrc 文件不存在或读取失败，继续下一步
-            }
-        }
-
-        // 2. 检查 package.json 中的 engines.node 配置
-        if (workspaceFolder) {
-            const packageJsonPath = vscode.Uri.joinPath(workspaceFolder.uri, 'package.json');
-            try {
-                const packageJsonContent = await vscode.workspace.fs.readFile(packageJsonPath);
-                const packageJson = JSON.parse(Buffer.from(packageJsonContent).toString());
-                const nodeVersion = packageJson.engines?.node;
-                if (nodeVersion) {
-                    // 提取版本号（处理 >=16.0.0 这样的格式）
-                    const versionMatch = nodeVersion.match(/(\d+\.\d+\.\d+)/);
-                    if (versionMatch) {
-                        const version = versionMatch[1];
-                        terminal.sendText(`nvm use ${version}`);
-                        lastUsedVersion = `v${version}`;
-                        setTimeout(() => updateStatusBar(), 2000);
-                        return;
-                    }
-                }
-            } catch (packageError) {
-                // package.json 不存在或解析失败，继续下一步
-            }
-        }
-
-        // 3. 如果没有项目配置，从已安装版本中获取最新版本
-        try {
-            const { stdout } = await execAsync('nvm ls');
-            const lines = stdout.split('\n');
-            let latestVersion = '';
-            
-            // 解析已安装的版本，找到最新的版本
-            for (const line of lines) {
-                const versionMatch = line.match(/v?(\d+\.\d+\.\d+)/);
-                if (versionMatch) {
-                    const version = versionMatch[1];
-                    if (!latestVersion || compareVersions(version, latestVersion) > 0) {
-                        latestVersion = version;
-                    }
-                }
-            }
-            
-            if (latestVersion) {
-                terminal.sendText(`nvm use ${latestVersion}`);
-                lastUsedVersion = `v${latestVersion}`;
-                setTimeout(() => updateStatusBar(), 2000);
-                return;
-            }
-        } catch (listError) {
-            // 获取版本列表失败，使用默认行为
-        }
-
-        // 4. 如果以上都失败，执行 nvm use node（使用最新已安装版本）
-        terminal.sendText('nvm use node');
-        setTimeout(() => updateStatusBar(), 2000);
-    } catch (error) {
-        console.error('自动设置Node.js版本失败:', error);
-        // 失败时仍然尝试更新状态栏
-        setTimeout(() => updateStatusBar(), 2000);
     }
 }
 
