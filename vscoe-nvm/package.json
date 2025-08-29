@@ -24,7 +24,17 @@
         "command": "nvm.switchVersion",
         "title": "NVM: Switch Node.js Version"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "VS Code NVM",
+      "properties": {
+        "vscode-nvm.autoSwitch": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable or disable automatic Node.js version switching when a new terminal is opened."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
